@@ -56,6 +56,29 @@ macro(set_if_not_defined var defaultvalue)
   endif()
 endmacro()
 
+macro(get_gifti_rpath)
+# Prepare RPATH
+file(RELATIVE_PATH _rel ${CMAKE_INSTALL_PREFIX}/${GIFTI_INSTALL_RUNTIME_DIR} ${CMAKE_INSTALL_PREFIX})
+if(APPLE)
+  set(_rpath "@loader_path/${_rel}")
+else()
+  set(_rpath "\$ORIGIN/${_rel}")
+endif()
+file(TO_NATIVE_PATH "${_rpath}/${GIFTI_INSTALL_LIBRARY_DIR}" message_RPATH)
+endmacro()
+
+macro(add_gifti_target_properties target)
+  # set some default properties for targets in this project
+  get_gifti_rpath()
+  set_target_properties(${target} PROPERTIES
+    MACOSX_RPATH ON
+    SKIP_BUILD_RPATH OFF
+    BUILD_WITH_INSTALL_RPATH OFF
+    INSTALL_RPATH "${message_RPATH}"
+    INSTALL_RPATH_USE_LINK_PATH ON
+    PREFIX "${NIFTI_PACKAGE_PREFIX}")
+endmacro()
+
 
 option(BUILD_SHARED_LIBS "Toggle building shared libraries." ON)
 add_definitions(-DHAVE_ZLIB)
