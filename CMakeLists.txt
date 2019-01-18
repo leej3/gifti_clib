@@ -141,23 +141,58 @@ set(GIFTI_SHAREDLIB_VERSION "0.0.0")
 string( REGEX MATCH "^[0-9]+" GIFTI_SHAREDLIB_SOVERSION ${GIFTI_SHAREDLIB_VERSION})
 set(GIFTI_LIBRARY_PROPERTIES VERSION ${GIFTI_SHAREDLIB_VERSION} SOVERSION ${GIFTI_SHAREDLIB_SOVERSION})
 
+
 add_library(giftiio gifti_io.c gifti_xml.c)
-set_target_properties(giftiio PROPERTIES ${GIFTI_LIBRARY_PROPERTIES})
-target_link_libraries(giftiio ${EXPAT_LIBRARIES} ${ZLIB_LIBRARIES} ${NIFTI_PACKAGE_PREFIX}nifti2)
+set_target_properties(giftiio PROPERTIES
+ ${GIFTI_LIBRARY_PROPERTIES}
+ PUBLIC_HEADER "gifti_io.h;gifti_xml.h")
+add_gifti_target_properties(giftiio)
+target_link_libraries(giftiio PUBLIC ${EXPAT_LIBRARIES} ${ZLIB_LIBRARIES} NIFTI::nifti2)
 
 add_executable(gifti_tool gifti_tool.c)
-target_link_libraries(gifti_tool giftiio ${EXPAT_LIBRARIES} ${ZLIB_LIBRARIES} ${NIFTI_PACKAGE_PREFIX}nifti2)
+set_target_properties(gifti_tool PROPERTIES PUBLIC_HEADER "gifti_xml.h;gifti_io.h")
+add_gifti_target_properties(gifti_tool)
+target_link_libraries(gifti_tool PUBLIC giftiio  EXPAT::EXPAT ${ZLIB_LIBRARIES})
 
 add_executable(gifti_test gifti_test.c)
+set_target_properties(gifti_test PROPERTIES PUBLIC_HEADER gifti_test.h)
+add_gifti_target_properties(gifti_test)
 target_link_libraries(gifti_test giftiio)
+
 
 # binaries
 install(TARGETS giftiio gifti_tool gifti_test
-    RUNTIME DESTINATION ${GIFTI_INSTALL_BIN_DIR} COMPONENT RuntimeLibraries
-    LIBRARY DESTINATION ${GIFTI_INSTALL_LIB_DIR} COMPONENT RuntimeLibraries
-    ARCHIVE DESTINATION ${GIFTI_INSTALL_LIB_DIR} COMPONENT Development)
+    EXPORT ${GIFTI_INSTALL_EXPORT_NAME}
+    RUNTIME DESTINATION ${GIFTI_INSTALL_RUNTIME_DIR} COMPONENT Runtime
+    LIBRARY DESTINATION ${GIFTI_INSTALL_LIBRARY_DIR} COMPONENT Libraries
+    PUBLIC_HEADER DESTINATION ${GIFTI_INSTALL_LIBRARY_DIR} COMPONENT Development
+    ARCHIVE DESTINATION ${GIFTI_INSTALL_ARCHIVE_DIR} COMPONENT Libraries)
 
-# headers
-install(FILES gifti_io.h gifti_xml.h
-    DESTINATION ${GIFTI_INSTALL_INCLUDE_DIR}
-    COMPONENT Development)
+
+# For package this project:
+include(CMakePackageConfigHelpers)
+set(CONFIG_SETUP_DIR ${CMAKE_CURRENT_BINARY_DIR}/${PACKAGE_NAME})
+set(ConfigPackageLocation share/cmake/${PACKAGE_NAME})
+
+write_basic_package_version_file(
+      ${CONFIG_SETUP_DIR}/${PACKAGE_NAME}ConfigVersion.cmake
+      VERSION ${GIT_REPO_VERSION}
+      COMPATIBILITY AnyNewerVersion
+)
+
+configure_file(cmake/GIFTIConfig.cmake
+      ${CONFIG_SETUP_DIR}/${PACKAGE_NAME}Config.cmake
+      COPYONLY
+      )
+
+install(EXPORT ${GIFTI_INSTALL_EXPORT_NAME}
+      NAMESPACE     "GIFTI::"
+      FILE GIFTITargets.cmake
+      DESTINATION   ${ConfigPackageLocation}
+      )
+
+install(FILES
+         ${CONFIG_SETUP_DIR}/${PACKAGE_NAME}Config.cmake
+         ${CONFIG_SETUP_DIR}/${PACKAGE_NAME}ConfigVersion.cmake
+      DESTINATION   ${ConfigPackageLocation}
+)
