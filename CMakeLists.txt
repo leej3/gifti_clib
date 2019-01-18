@@ -102,7 +102,8 @@ set_if_not_defined(GIFTI_INSTALL_ARCHIVE_DIR ${CMAKE_INSTALL_PREFIX}/lib/${PACKA
 option(BUILD_SHARED_LIBS "Toggle building shared libraries." ON)
 add_definitions(-DHAVE_ZLIB)
 
-find_package(ITK)
+# Finding dependencies
+find_package(ITK QUIET)
 if(ITK_FOUND)
 # ITK provides expat and zlib.
    include(${ITK_USE_FILE})
@@ -113,17 +114,20 @@ else()
 # Otherwise, get it from elsewhere.
   find_package(EXPAT REQUIRED)
   find_package(ZLIB REQUIRED)
-  ### STEP 2 -- fetch nifti_clib immediately at configuration time, so add_subdirectory can be used.
+endif()
+
+find_package(${NIFTI_PACKAGE_PREFIX}NIFTI 3 QUIET)
+if (NOT "${${NIFTI_PACKAGE_PREFIX}NIFTI_FOUND}")
+### STEP 2 -- fetch nifti_clib immediately at configuration time, so add_subdirectory can be used.
   include(FetchContent)
   # If new or changed data is needed, add that data to the https://github.com/NIFTI-Imaging/nifti-test-data repo
   # make a new release, and then update the URL and hash (shasum -a 256 <downloaded tarball>).
   FetchContent_Declare( fetch_nifti_clib_git_repo
-          GIT_REPOSITORY https://github.com/leej3/nifti_clib.git
-          GIT_TAG        v2.1.4 # or v3.0.0, or <HASH>
-          SOURCE_DIR     ${CMAKE_CURRENT_LIST_DIR}/nifti_clib_download # <- not standard,  remove this line to download in binary tree
+          GIT_REPOSITORY https://github.com/NIFTI-Imaging/nifti_clib
+          GIT_TAG        v3.0.0 # or git <HASH> or git <branch>
           )
   FetchContent_GetProperties(fetch_nifti_clib_git_repo)
-  if(NOT fetch_nifti_clib_git_repo)
+  if(NOT fetch_nifti_clib_git_repo_POPULATED)
       set(FETCHCONTENT_QUIET OFF)
       message(STATUS "Downloading nifti_clib from github ... please wait")
       FetchContent_Populate( fetch_nifti_clib_git_repo )
