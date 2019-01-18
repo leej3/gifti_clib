@@ -6,12 +6,23 @@ cmake_minimum_required(VERSION 3.11 FATAL_ERROR)
 # Use git tag to define VERSION
 execute_process(COMMAND git "describe" "--tags"
   OUTPUT_VARIABLE GIT_REPO_VERSION_UNCLEANED
-  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+  ERROR_QUIET)
 string(REGEX MATCH "[0-9]+\\.[0-9]+\\.[0-9]+(\\.[0-9]+(\\.g[0-9a-f]+)?)?"
  GIT_REPO_VERSION  "${GIT_REPO_VERSION_UNCLEANED}")
 
+if (GIT_REPO_VERSION STREQUAL "")
+  # Conda build will have environment var but no git repo.
+  if (DEFINED ENV{GIT_DESCRIBE_TAG})
+    message("TAG:" ENV{GIT_DESCRIBE_TAG})
+    set(GIT_REPO_VERSION ENV{GIT_DESCRIBE_TAG})
+  else()
+    set(GIT_REPO_VERSION "99.99.99")
+  endif()
+endif()
+
 project(gifticlib
-        VERSION 0.0.1
+        VERSION ${GIT_REPO_VERSION}
         DESCRIPTION "Geometry format under the Neuroimaging Informatics Technology Initiative (NIfTI)."
         LANGUAGES C)
 
@@ -21,10 +32,6 @@ if(EXISTS "${LOC_PATH}")
     message(FATAL_ERROR "You cannot build in a source directory (or any directory with a CMakeLists.txt file). Please make a build subdirectory. Feel free to remove CMakeCache.txt and CMakeFiles.")
 endif()
 
-# install destinations
-set(GIFTI_INSTALL_BIN_DIR "${CMAKE_INSTALL_PREFIX}/bin")
-set(GIFTI_INSTALL_LIB_DIR "${CMAKE_INSTALL_PREFIX}/lib")
-set(GIFTI_INSTALL_INCLUDE_DIR "${CMAKE_INSTALL_PREFIX}/include/gifti")
 macro(set_if_not_defined var defaultvalue)
 # Macro allowing to set a variable to its default value if not already defined.
 # The default value is set with:
@@ -56,15 +63,95 @@ macro(set_if_not_defined var defaultvalue)
   endif()
 endmacro()
 
+macro(get_gifti_rpath)
+# Prepare RPATH
+file(RELATIVE_PATH _rel ${CMAKE_INSTALL_PREFIX}/${GIFTI_INSTALL_BIN_DIR} ${CMAKE_INSTALL_PREFIX})
+if(APPLE)
+  set(_rpath "@loader_path/${_rel}")
+else()
+  set(_rpath "\$ORIGIN/${_rel}")
+endif()
+file(TO_NATIVE_PATH "${_rpath}/${GIFTI_INSTALL_LIB_DIR}" message_RPATH)
+endmacro()
 
 option(TEST_GIFTI "Enable tests" ON)
 if(${TEST_GIFTI})
     enable_testing()
 endif()
+macro(add_gifti_target_properties target)
+  # this macro sets some default properties for targets in this project
+  get_gifti_rpath()
+  # define installation prefix
+  get_target_property(TARGET_TYPE ${target} TYPE)
+
+  # Define prefix of exported target i.e. if a prefix is defined, all targets
+  # will have the prefix appended and the export namespace will be changed.
+  # So NIFTI::znz becomes prefixNIFTI::prefixznz
+  set(TARGET_EXPORT_NAME ${target})
+
+  if(TARGET_TYPE MATCHES "LIBRARY")
+    # If a superbuild modifies the export name then an alias  should be
+    #  created for use during build configure time. This alias will be
+    #  identical to the exported targets of the project
+    if(${target} STREQUAL fake_target)
+      message("Based on project settings, NIFTI/GIFTI targets will look like ${EXPORT_NAMESPACE}::${TARGET_EXPORT_NAME}")
+    else()
+      message("adding ${target} alias for superbuild  (${EXPORT_NAMESPACE}::${TARGET_EXPORT_NAME})")
+    endif()
+      add_library(
+        ${EXPORT_NAMESPACE}::${TARGET_EXPORT_NAME}
+         ALIAS
+          ${target})
+  endif()
+
+  # Set the target properties
+  # Currently this includes setting up post-install linking, prefixing target names with NIFTI_PACKAGE_PREFIX if requests
+    set_target_properties(${target} PROPERTIES
+    MACOSX_RPATH ON
+    SKIP_BUILD_RPATH OFF
+    BUILD_WITH_INSTALL_RPATH OFF
+    INSTALL_RPATH "${message_RPATH}"
+    INSTALL_RPATH_USE_LINK_PATH ON
+    OUTPUT_NAME "${TARGET_EXPORT_NAME}" # filename base
+    EXPORT_NAME "${TARGET_EXPORT_NAME}" # target exported
+    )
+endmacro()
+
+
+# INSTALLATION SETTINGS
+
+
+# NIFTI_install_choices
+set_if_not_defined(USE_NIFTI2_CODE ON CACHE BOOL "Do not build NIFTI2 provided by NIFTI")
+set_if_not_defined(USE_FSL_CODE ON CACHE BOOL "Do not build FSL provided by NIFTI")
+set_if_not_defined(USE_CIFTI_CODE ON  CACHE BOOL "Do not build CIFTI provided by NIFTI")
+set_if_not_defined(USE_NIFTICDF_CODE ON CACHE BOOL "Do not build NIFTICDF provided by NIFTI")
+set_if_not_defined(NIFTI_USE_PACKAGING OFF CACHE BOOL "Do not use packaging from nifti when included as part of another package")
+set_if_not_defined(NIFTI_BUILD_APPLICATIONS ON CACHE BOOL "Do not build applications provided by NIFTI")
+if (NOT NIFTI_PACKAGE_PREFIX)
+set(NIFTI_PACKAGE_PREFIX "" CACHE STRING "NIFTI package can be installed with a prefix (the same one is used for gifti).")
+endif()
+set(PACKAGE_NAME ${NIFTI_PACKAGE_PREFIX}GIFTI)
+set(GIFTI_INSTALL_EXPORT_NAME ${PACKAGE_NAME}Targets)
+
+# GIFTI install destinations
+set_if_not_defined(GIFTI_INSTALL_BIN_DIR ${CMAKE_INSTALL_PREFIX}/bin)
+set_if_not_defined(GIFTI_INSTALL_LIB_DIR ${CMAKE_INSTALL_PREFIX}/lib)
+set_if_not_defined(GIFTI_INSTALL_INCLUDE_DIR ${CMAKE_INSTALL_PREFIX}/include)
+
+# Other settings
 option(BUILD_SHARED_LIBS "Toggle building shared libraries." ON)
 add_definitions(-DHAVE_ZLIB)
 
-find_package(ITK)
+set(EXPORT_NAMESPACE ${NIFTI_PACKAGE_PREFIX}GIFTI)
+set(giftiio_TARGET ${NIFTI_PACKAGE_PREFIX}giftiio)
+set(gifti_tool_TARGET ${NIFTI_PACKAGE_PREFIX}gifti_tool)
+set(gifti_test_TARGET ${NIFTI_PACKAGE_PREFIX}gifti_test)
+set(NIFTI_2_LIB ${NIFTI_PACKAGE_PREFIX}NIFTI::${NIFTI_PACKAGE_PREFIX}nifti2)
+
+
+# Finding dependencies
+find_package(ITK QUIET)
 if(ITK_FOUND)
 # ITK provides expat and zlib.
    include(${ITK_USE_FILE})
@@ -94,31 +181,88 @@ else()
   endif()
 endif()
 
+if(NOT "${${NIFTI_PACKAGE_PREFIX}NIFTI_FOUND}")
+include(FetchContent)
+# If new or changed data is needed, add that data to the https://github.com/NIFTI-Imaging/nifti-test-data repo
+# make a new release, and then update the URL and hash (shasum -a 256 <downloaded tarball>).
+FetchContent_Declare( fetch_nifti_clib_git_repo
+          GIT_REPOSITORY https://github.com/NIFTI-Imaging/nifti_clib.git
+          GIT_TAG        v3.0.0 # or commit id eg <HASH>
+        )
+FetchContent_GetProperties(fetch_nifti_clib_git_repo)
+if(NOT fetch_nifti_clib_git_repo_POPULATED)
+    set(FETCHCONTENT_QUIET OFF)
+    message(STATUS "Fetching nifti_clib targets")
+    FetchContent_Populate(fetch_nifti_clib_git_repo)
+    add_subdirectory(${fetch_nifti_clib_git_repo_SOURCE_DIR} ${fetch_nifti_clib_git_repo_BINARY_DIR})
+endif()
+endif()
+
 # shared library API versioning -- NOT the same as the release version
 set(GIFTI_SHAREDLIB_VERSION "0.0.0")
 string( REGEX MATCH "^[0-9]+" GIFTI_SHAREDLIB_SOVERSION ${GIFTI_SHAREDLIB_VERSION})
 set(GIFTI_LIBRARY_PROPERTIES VERSION ${GIFTI_SHAREDLIB_VERSION} SOVERSION ${GIFTI_SHAREDLIB_SOVERSION})
 
-add_library(giftiio gifti_io.c gifti_xml.c)
-set_target_properties(giftiio PROPERTIES ${GIFTI_LIBRARY_PROPERTIES})
-target_link_libraries(giftiio ${EXPAT_LIBRARIES} ${ZLIB_LIBRARIES} ${NIFTI_PACKAGE_PREFIX}nifti2)
 
-add_executable(gifti_tool gifti_tool.c)
-target_link_libraries(gifti_tool giftiio ${EXPAT_LIBRARIES} ${ZLIB_LIBRARIES} ${NIFTI_PACKAGE_PREFIX}nifti2)
+add_library(${giftiio_TARGET} gifti_io.c gifti_xml.c)
+target_include_directories(${giftiio_TARGET} PUBLIC
+  $<INSTALL_INTERFACE:${GIFTI_INSTALL_LIB_DIR}>    
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+)
 
-add_executable(gifti_test gifti_test.c)
-target_link_libraries(gifti_test giftiio)
+set_target_properties(${giftiio_TARGET} PROPERTIES
+ ${GIFTI_LIBRARY_PROPERTIES}
+ PUBLIC_HEADER "gifti_io.h;gifti_xml.h")
+add_gifti_target_properties(${giftiio_TARGET})
+target_link_libraries(${giftiio_TARGET} PUBLIC ${EXPAT_LIBRARIES} ${ZLIB_LIBRARIES} ${NIFTI_2_LIB})
+
+add_executable(${gifti_tool_TARGET} gifti_tool.c)
+set_target_properties(${gifti_tool_TARGET} PROPERTIES PUBLIC_HEADER "gifti_xml.h;gifti_io.h")
+add_gifti_target_properties(${gifti_tool_TARGET})
+target_link_libraries(${gifti_tool_TARGET} PUBLIC ${giftiio_TARGET}  EXPAT::EXPAT ${ZLIB_LIBRARIES})
+
+add_executable(${gifti_test_TARGET} gifti_test.c)
+set_target_properties(${gifti_test_TARGET} PROPERTIES PUBLIC_HEADER gifti_test.h)
+add_gifti_target_properties(${gifti_test_TARGET})
+target_link_libraries(${gifti_test_TARGET} ${giftiio_TARGET})
 
 # binaries
-install(TARGETS giftiio gifti_tool gifti_test
+install(TARGETS ${giftiio_TARGET} ${gifti_tool_TARGET} ${gifti_test_TARGET}
+    EXPORT ${GIFTI_INSTALL_EXPORT_NAME}
     RUNTIME DESTINATION ${GIFTI_INSTALL_BIN_DIR} COMPONENT RuntimeLibraries
     LIBRARY DESTINATION ${GIFTI_INSTALL_LIB_DIR} COMPONENT RuntimeLibraries
-    ARCHIVE DESTINATION ${GIFTI_INSTALL_LIB_DIR} COMPONENT Development)
+    ARCHIVE DESTINATION ${GIFTI_INSTALL_LIB_DIR} COMPONENT Development
+    PUBLIC_HEADER DESTINATION ${GIFTI_INSTALL_INCLUDE_DIR} COMPONENT Development
+    INCLUDES DESTINATION ${GIFTI_INSTALL_INCLUDE_DIR} COMPONENT Development
+    )
 
-# headers
-install(FILES gifti_io.h gifti_xml.h
-    DESTINATION ${GIFTI_INSTALL_INCLUDE_DIR}
-    COMPONENT Development)
+# For packaging this project:
+include(CMakePackageConfigHelpers)
+set(CONFIG_SETUP_DIR ${CMAKE_CURRENT_BINARY_DIR}/${PACKAGE_NAME})
+set(ConfigPackageLocation share/cmake/${PACKAGE_NAME})
+
+write_basic_package_version_file(
+      ${CONFIG_SETUP_DIR}/${PACKAGE_NAME}ConfigVersion.cmake
+      VERSION ${GIT_REPO_VERSION}
+      COMPATIBILITY AnyNewerVersion
+)
+
+configure_file(cmake/GIFTIConfig.cmake
+      ${CONFIG_SETUP_DIR}/${PACKAGE_NAME}Config.cmake
+      COPYONLY
+      )
+
+install(EXPORT ${GIFTI_INSTALL_EXPORT_NAME}
+      NAMESPACE     ${PACKAGE_NAME}::
+      FILE GIFTITargets.cmake
+      DESTINATION   ${ConfigPackageLocation}
+      )
+
+install(FILES
+         ${CONFIG_SETUP_DIR}/${PACKAGE_NAME}Config.cmake
+         ${CONFIG_SETUP_DIR}/${PACKAGE_NAME}ConfigVersion.cmake
+      DESTINATION   ${ConfigPackageLocation}
+)
 
 #######################################################################
 ## Add the cpack configuration settings last
