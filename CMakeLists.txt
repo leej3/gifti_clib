@@ -21,10 +21,6 @@ if(EXISTS "${LOC_PATH}")
     message(FATAL_ERROR "You cannot build in a source directory (or any directory with a CMakeLists.txt file). Please make a build subdirectory. Feel free to remove CMakeCache.txt and CMakeFiles.")
 endif()
 
-# install destinations
-set(GIFTI_INSTALL_BIN_DIR "${CMAKE_INSTALL_PREFIX}/bin")
-set(GIFTI_INSTALL_LIB_DIR "${CMAKE_INSTALL_PREFIX}/lib")
-set(GIFTI_INSTALL_INCLUDE_DIR "${CMAKE_INSTALL_PREFIX}/include/gifti")
 macro(set_if_not_defined var defaultvalue)
 # Macro allowing to set a variable to its default value if not already defined.
 # The default value is set with:
@@ -80,6 +76,29 @@ macro(add_gifti_target_properties target)
 endmacro()
 
 
+# INSTALLATION SETTINGS
+
+
+# NIFTI_install_choices
+set_if_not_defined(USE_NIFTI2_CODE ON CACHE BOOL "Do not build NIFTI2 provided by NIFTI")
+set_if_not_defined(USE_FSL_CODE ON CACHE BOOL "Do not build FSL provided by NIFTI")
+set_if_not_defined(USE_CIFTI_CODE ON  CACHE BOOL "Do not build CIFTI provided by NIFTI")
+set_if_not_defined(USE_NIFTICDF_CODE ON CACHE BOOL "Do not build NIFTICDF provided by NIFTI")
+set_if_not_defined(NIFTI_USE_PACKAGING OFF CACHE BOOL "Do not use packaging from nifti when included as part of another package")
+set_if_not_defined(NIFTI_BUILD_APPLICATIONS ON CACHE BOOL "Do not build applications provided by NIFTI")
+if (NOT NIFTI_PACKAGE_PREFIX)
+set(NIFTI_PACKAGE_PREFIX "" CACHE STRING "NIFTI package can be installed with a prefix (the same one is used for gifti).")
+endif()
+set(PACKAGE_NAME ${NIFTI_PACKAGE_PREFIX}GIFTI)
+set(GIFTI_INSTALL_EXPORT_NAME ${PACKAGE_NAME}Targets)
+
+# GIFTI install destinations
+set_if_not_defined(GIFTI_INSTALL_RUNTIME_DIR ${CMAKE_INSTALL_PREFIX}/bin)
+set_if_not_defined(GIFTI_INSTALL_LIBRARY_DIR ${CMAKE_INSTALL_PREFIX}/lib/${PACKAGE_NAME})
+set_if_not_defined(GIFTI_INSTALL_INCLUDE_DIR ${CMAKE_INSTALL_PREFIX}/include/${PACKAGE_NAME})
+set_if_not_defined(GIFTI_INSTALL_ARCHIVE_DIR ${CMAKE_INSTALL_PREFIX}/lib/${PACKAGE_NAME})
+
+# Other settings
 option(BUILD_SHARED_LIBS "Toggle building shared libraries." ON)
 add_definitions(-DHAVE_ZLIB)
 
