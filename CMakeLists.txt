@@ -164,7 +164,6 @@ set_target_properties(giftiio PROPERTIES
  PUBLIC_HEADER "gifti_io.h;gifti_xml.h")
 add_gifti_target_properties(giftiio)
 target_link_libraries(giftiio PUBLIC ${EXPAT_LIBRARIES} ${ZLIB_LIBRARIES} NIFTI::nifti2)
-add_library(GIFTI)
 
 add_executable(gifti_tool gifti_tool.c)
 set_target_properties(gifti_tool PROPERTIES PUBLIC_HEADER "gifti_xml.h;gifti_io.h")
