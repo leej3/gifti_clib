@@ -99,6 +99,7 @@ set(NIFTI_PACKAGE_PREFIX "" CACHE STRING "NIFTI package can be installed with a 
 endif()
 set(PACKAGE_NAME ${NIFTI_PACKAGE_PREFIX}GIFTI)
 set(GIFTI_INSTALL_EXPORT_NAME ${PACKAGE_NAME}Targets)
+set_if_not_defined(INCLUDE_PREFIX_IN_EXPORT ON)
 
 # GIFTI install destinations
 set_if_not_defined(GIFTI_INSTALL_RUNTIME_DIR ${CMAKE_INSTALL_PREFIX}/bin)
@@ -151,6 +152,7 @@ string( REGEX MATCH "^[0-9]+" GIFTI_SHAREDLIB_SOVERSION ${GIFTI_SHAREDLIB_VERSIO
 set(GIFTI_LIBRARY_PROPERTIES VERSION ${GIFTI_SHAREDLIB_VERSION} SOVERSION ${GIFTI_SHAREDLIB_SOVERSION})
 
 
+# For superbuilds:
 add_library(giftiio gifti_io.c gifti_xml.c)
 target_include_directories(giftiio PUBLIC
   $<INSTALL_INTERFACE:${GIFTI_INSTALL_LIBRARY_DIR}>    
@@ -162,6 +164,7 @@ set_target_properties(giftiio PROPERTIES
  PUBLIC_HEADER "gifti_io.h;gifti_xml.h")
 add_gifti_target_properties(giftiio)
 target_link_libraries(giftiio PUBLIC ${EXPAT_LIBRARIES} ${ZLIB_LIBRARIES} NIFTI::nifti2)
+add_library(GIFTI)
 
 add_executable(gifti_tool gifti_tool.c)
 set_target_properties(gifti_tool PROPERTIES PUBLIC_HEADER "gifti_xml.h;gifti_io.h")
@@ -182,11 +185,18 @@ install(TARGETS giftiio gifti_tool gifti_test
     PUBLIC_HEADER DESTINATION ${GIFTI_INSTALL_LIBRARY_DIR} COMPONENT Development
     ARCHIVE DESTINATION ${GIFTI_INSTALL_LIBRARY_DIR} COMPONENT Libraries)
 
-
 # For package this project:
 include(CMakePackageConfigHelpers)
 set(CONFIG_SETUP_DIR ${CMAKE_CURRENT_BINARY_DIR}/${PACKAGE_NAME})
 set(ConfigPackageLocation share/cmake/${PACKAGE_NAME})
+
+# If requested, prepend NIFTI_PACKAGE_PREFIX to the namespace of exported
+# targets
+  if(INCLUDE_PREFIX_IN_EXPORT)
+    set(EXPORT_NAMESPACE ${NIFTI_PACKAGE_PREFIX}GIFTI::)
+  else()
+    set(EXPORT_NAMESPACE GIFTI::)
+  endif()
 
 write_basic_package_version_file(
       ${CONFIG_SETUP_DIR}/${PACKAGE_NAME}ConfigVersion.cmake
@@ -200,13 +210,23 @@ configure_file(cmake/GIFTIConfig.cmake
       )
 
 install(EXPORT ${GIFTI_INSTALL_EXPORT_NAME}
-      NAMESPACE     "GIFTI::"
+      NAMESPACE     ${EXPORT_NAMESPACE}
       FILE GIFTITargets.cmake
       DESTINATION   ${ConfigPackageLocation}
       )
+# For superbuilds:
+add_library(${EXPORT_NAMESPACE}giftiio ALIAS giftiio)
 
 install(FILES
          ${CONFIG_SETUP_DIR}/${PACKAGE_NAME}Config.cmake
          ${CONFIG_SETUP_DIR}/${PACKAGE_NAME}ConfigVersion.cmake
       DESTINATION   ${ConfigPackageLocation}
 )
+
+#######################################################################
+## Add the cpack configuration settings last
+option(GIFTI_USE_PACKAGING "Configure the packaging options for GIFTI" OFF)
+mark_as_advanced(GIFTI_USE_PACKAGING)
+if(NIFTI_USE_PACKAGING)
+  include(cmake/GIFTICPackConfig.cmake)
+endif()
