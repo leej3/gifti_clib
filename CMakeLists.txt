@@ -64,15 +64,23 @@ file(TO_NATIVE_PATH "${_rpath}/${GIFTI_INSTALL_LIBRARY_DIR}" message_RPATH)
 endmacro()
 
 macro(add_gifti_target_properties target)
-  # set some default properties for targets in this project
+  # this macro sets some default properties for targets in this project
   get_gifti_rpath()
+  # define installation prefix
+  get_target_property(TARGET_TYPE ${target} TYPE)
+  if (TARGET_TYPE STREQUAL "EXECUTABLE")
+    set(TARGET_INSTALL_PREFIX "${NIFTI_PACKAGE_PREFIX}")
+  else()
+    set(TARGET_INSTALL_PREFIX ${NIFTI_PACKAGE_PREFIX}lib)
+  endif()
+  # Set the target properties
   set_target_properties(${target} PROPERTIES
     MACOSX_RPATH ON
     SKIP_BUILD_RPATH OFF
     BUILD_WITH_INSTALL_RPATH OFF
     INSTALL_RPATH "${message_RPATH}"
     INSTALL_RPATH_USE_LINK_PATH ON
-    PREFIX "${NIFTI_PACKAGE_PREFIX}")
+    PREFIX "${TARGET_INSTALL_PREFIX}")
 endmacro()
 
 
