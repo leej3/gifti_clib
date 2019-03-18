@@ -59,7 +59,7 @@ set(GIFTI_INSTALL_EXPORT_NAME ${PACKAGE_NAME}Targets)
 # GIFTI install destinations
 set_if_not_defined(GIFTI_INSTALL_BIN_DIR ${CMAKE_INSTALL_PREFIX}/bin)
 set_if_not_defined(GIFTI_INSTALL_LIB_DIR ${CMAKE_INSTALL_PREFIX}/lib)
-set_if_not_defined(GIFTI_INSTALL_INCLUDE_DIR ${CMAKE_INSTALL_PREFIX}/include)
+set_if_not_defined(GIFTI_INSTALL_INCLUDE_DIR ${CMAKE_INSTALL_PREFIX}/include/gifti)
 
 # Other settings
 option(BUILD_SHARED_LIBS "Toggle building shared libraries." ON)
