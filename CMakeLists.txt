@@ -82,15 +82,16 @@ if(ITK_FOUND)
    set(${NIFTI_PACKAGE_PREFIX} ITK)
 else()
 # Otherwise, get it from elsewhere.
-  find_package(EXPAT REQUIRED)
+  include(FindEXPAT)
   find_package(ZLIB REQUIRED)
   ### STEP 2 -- fetch nifti_clib immediately at configuration time, so add_subdirectory can be used.
   include(FetchContent)
   # If new or changed data is needed, add that data to the https://github.com/NIFTI-Imaging/nifti-test-data repo
   # make a new release, and then update the URL and hash (shasum -a 256 <downloaded tarball>).
   FetchContent_Declare( fetch_nifti_clib_git_repo
-          GIT_REPOSITORY https://github.com/NIFTI-Imaging/nifti_clib.git
-          GIT_TAG        v3.0.0beta1 # or <HASH>
+          GIT_REPOSITORY https://github.com/leej3/nifti_clib.git
+          # GIT_TAG        v3.0.0beta1 # or <HASH>
+          GIT_TAG        2.8.8test # or <HASH>
           )
   FetchContent_GetProperties(fetch_nifti_clib_git_repo)
 
