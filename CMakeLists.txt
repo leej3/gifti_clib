@@ -91,33 +91,16 @@ else()
   FetchContent_Declare( fetch_nifti_clib_git_repo
           GIT_REPOSITORY https://github.com/NIFTI-Imaging/nifti_clib.git
           GIT_TAG        v3.0.0 # or <HASH>
-          SOURCE_DIR     ${CMAKE_CURRENT_LIST_DIR}/nifti_clib_download # <- not standard,  remove this line to download in binary tree
           )
   FetchContent_GetProperties(fetch_nifti_clib_git_repo)
-  if(NOT fetch_nifti_clib_git_repo)
+
+
+  if(NOT fetch_nifti_clib_git_repo_POPULATED)
       set(FETCHCONTENT_QUIET OFF)
-      message(STATUS "Downloading nifti_clib from github ... please wait")
-      FetchContent_Populate( fetch_nifti_clib_git_repo )
-      message(STATUS "download complete.")
+      message(STATUS "Fetching nifti_clib targets")
+      FetchContent_Populate(fetch_nifti_clib_git_repo)
       add_subdirectory(${fetch_nifti_clib_git_repo_SOURCE_DIR} ${fetch_nifti_clib_git_repo_BINARY_DIR})
   endif()
-endif()
-
-if(NOT "${${NIFTI_PACKAGE_PREFIX}NIFTI_FOUND}")
-include(FetchContent)
-# If new or changed data is needed, add that data to the https://github.com/NIFTI-Imaging/nifti-test-data repo
-# make a new release, and then update the URL and hash (shasum -a 256 <downloaded tarball>).
-FetchContent_Declare( fetch_nifti_clib_git_repo
-          GIT_REPOSITORY https://github.com/NIFTI-Imaging/nifti_clib.git
-          GIT_TAG        v3.0.0 # or commit id eg <HASH>
-        )
-FetchContent_GetProperties(fetch_nifti_clib_git_repo)
-if(NOT fetch_nifti_clib_git_repo_POPULATED)
-    set(FETCHCONTENT_QUIET OFF)
-    message(STATUS "Fetching nifti_clib targets")
-    FetchContent_Populate(fetch_nifti_clib_git_repo)
-    add_subdirectory(${fetch_nifti_clib_git_repo_SOURCE_DIR} ${fetch_nifti_clib_git_repo_BINARY_DIR})
-endif()
 endif()
 
 # shared library API versioning -- NOT the same as the release version
