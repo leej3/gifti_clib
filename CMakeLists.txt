@@ -91,7 +91,7 @@ else()
   FetchContent_Declare( fetch_nifti_clib_git_repo
           GIT_REPOSITORY https://github.com/leej3/nifti_clib.git
           # GIT_TAG        v3.0.0beta1 # or <HASH>
-          GIT_TAG        2.8.8test # or <HASH>
+          GIT_TAG        2.8.9 # or <HASH>
           )
   FetchContent_GetProperties(fetch_nifti_clib_git_repo)
 
