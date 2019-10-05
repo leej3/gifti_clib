@@ -50,19 +50,19 @@ macro(add_gifti_target_properties target)
   # Define prefix of exported target i.e. if a prefix is defined, all targets
   # will have the prefix appended and the export namespace will be changed.
   # So NIFTI::znz becomes prefixNIFTI::prefixznz
-  set(TARGET_EXPORT_NAME ${target})
+  set(TARGET_EXPORT_NAME ${NIFTI_PACKAGE_PREFIX}${target})
 
   if(TARGET_TYPE MATCHES "LIBRARY")
     # If a superbuild modifies the export name then an alias  should be
     #  created for use during build configure time. This alias will be
     #  identical to the exported targets of the project
     if(${target} STREQUAL fake_target)
-      message("Based on project settings, NIFTI/GIFTI targets will look like ${EXPORT_NAMESPACE}::${TARGET_EXPORT_NAME}")
+      message("Based on project settings, NIFTI/GIFTI targets will look like ${PACKAGE_NAME}::${TARGET_EXPORT_NAME}")
     else()
-      message("adding ${target} alias for superbuild  (${EXPORT_NAMESPACE}::${TARGET_EXPORT_NAME})")
+      message("adding ${target} alias for superbuild  (${PACKAGE_NAME}::${TARGET_EXPORT_NAME})")
     endif()
       add_library(
-        ${EXPORT_NAMESPACE}::${TARGET_EXPORT_NAME}
+        ${PACKAGE_NAME}::${TARGET_EXPORT_NAME}
          ALIAS
           ${target})
   endif()
