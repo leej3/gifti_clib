@@ -26,5 +26,8 @@ COPY . /gifti_clib/
 
 WORKDIR /gifti_build
 RUN cmake /gifti_clib \
+ -DBUILD_SHARED_LIBS:BOOL=ON \
+ -DNIFTI_PACKAGE_PREFIX=NIFTI_PREFIX_ \
     && make install \
     && ctest
+
