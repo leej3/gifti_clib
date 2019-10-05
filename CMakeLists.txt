@@ -66,9 +66,9 @@ option(BUILD_SHARED_LIBS "Toggle building shared libraries." ON)
 add_definitions(-DHAVE_ZLIB)
 
 set(EXPORT_NAMESPACE ${NIFTI_PACKAGE_PREFIX}GIFTI)
-set(giftiio_TARGET ${NIFTI_PACKAGE_PREFIX}giftiio)
-set(gifti_tool_TARGET ${NIFTI_PACKAGE_PREFIX}gifti_tool)
-set(gifti_test_TARGET ${NIFTI_PACKAGE_PREFIX}gifti_test)
+set(giftiio ${NIFTI_PACKAGE_PREFIX}giftiio)
+set(gifti_tool ${NIFTI_PACKAGE_PREFIX}gifti_tool)
+set(gifti_test ${NIFTI_PACKAGE_PREFIX}gifti_test)
 set(NIFTI_2_LIB ${NIFTI_PACKAGE_PREFIX}NIFTI::${NIFTI_PACKAGE_PREFIX}nifti2)
 
 
@@ -110,30 +110,30 @@ string( REGEX MATCH "^[0-9]+" GIFTI_SHAREDLIB_SOVERSION ${GIFTI_SHAREDLIB_VERSIO
 set(GIFTI_LIBRARY_PROPERTIES VERSION ${GIFTI_SHAREDLIB_VERSION} SOVERSION ${GIFTI_SHAREDLIB_SOVERSION})
 
 
-add_library(${giftiio_TARGET} gifti_io.c gifti_xml.c)
-target_include_directories(${giftiio_TARGET} PUBLIC
+add_library(giftiio gifti_io.c gifti_xml.c)
+target_include_directories(giftiio PUBLIC
   $<INSTALL_INTERFACE:${GIFTI_INSTALL_LIB_DIR}>    
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
 )
 
-set_target_properties(${giftiio_TARGET} PROPERTIES
+set_target_properties(giftiio PROPERTIES
  ${GIFTI_LIBRARY_PROPERTIES}
  PUBLIC_HEADER "gifti_io.h;gifti_xml.h")
-add_gifti_target_properties(${giftiio_TARGET})
-target_link_libraries(${giftiio_TARGET} PUBLIC ${EXPAT_LIBRARIES} ${ZLIB_LIBRARIES} ${NIFTI_2_LIB})
+add_gifti_target_properties(giftiio)
+target_link_libraries(giftiio PUBLIC ${EXPAT_LIBRARIES} ${ZLIB_LIBRARIES} ${NIFTI_2_LIB})
 
-add_executable(${gifti_tool_TARGET} gifti_tool.c)
-set_target_properties(${gifti_tool_TARGET} PROPERTIES PUBLIC_HEADER "gifti_xml.h;gifti_io.h")
-add_gifti_target_properties(${gifti_tool_TARGET})
-target_link_libraries(${gifti_tool_TARGET} PUBLIC ${giftiio_TARGET}  EXPAT::EXPAT ${ZLIB_LIBRARIES})
+add_executable(gifti_tool gifti_tool.c)
+set_target_properties(gifti_tool PROPERTIES PUBLIC_HEADER "gifti_xml.h;gifti_io.h")
+add_gifti_target_properties(gifti_tool)
+target_link_libraries(gifti_tool PUBLIC giftiio  EXPAT::EXPAT ${ZLIB_LIBRARIES})
 
-add_executable(${gifti_test_TARGET} gifti_test.c)
-set_target_properties(${gifti_test_TARGET} PROPERTIES PUBLIC_HEADER gifti_test.h)
-add_gifti_target_properties(${gifti_test_TARGET})
-target_link_libraries(${gifti_test_TARGET} ${giftiio_TARGET})
+add_executable(gifti_test gifti_test.c)
+set_target_properties(gifti_test PROPERTIES PUBLIC_HEADER gifti_test.h)
+add_gifti_target_properties(gifti_test)
+target_link_libraries(gifti_test giftiio)
 
 # binaries
-install(TARGETS ${giftiio_TARGET} ${gifti_tool_TARGET} ${gifti_test_TARGET}
+install(TARGETS giftiio gifti_tool gifti_test
     EXPORT ${GIFTI_INSTALL_EXPORT_NAME}
     RUNTIME DESTINATION ${GIFTI_INSTALL_BIN_DIR} COMPONENT RuntimeLibraries
     LIBRARY DESTINATION ${GIFTI_INSTALL_LIB_DIR} COMPONENT RuntimeLibraries
