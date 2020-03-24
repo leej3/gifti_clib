@@ -82,7 +82,7 @@ if(ITK_FOUND)
    set(${NIFTI_PACKAGE_PREFIX} ITK)
 else()
 # Otherwise, get it from elsewhere.
-  find_package(EXPAT REQUIRED)
+  find_package(EXPAT MODULE REQUIRED)
   find_package(ZLIB REQUIRED)
   ### STEP 2 -- fetch nifti_clib immediately at configuration time, so add_subdirectory can be used.
   include(FetchContent)
