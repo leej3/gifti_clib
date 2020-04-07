@@ -104,13 +104,13 @@ set(GIFTI_SHAREDLIB_VERSION "0.0.0")
 string( REGEX MATCH "^[0-9]+" GIFTI_SHAREDLIB_SOVERSION ${GIFTI_SHAREDLIB_VERSION})
 set(GIFTI_LIBRARY_PROPERTIES VERSION ${GIFTI_SHAREDLIB_VERSION} SOVERSION ${GIFTI_SHAREDLIB_SOVERSION})
 
-
-add_library(giftiio gifti_io.c gifti_xml.c)
-set_target_properties(giftiio PROPERTIES
+set(GIFTICLIB_NAME ${NIFTI_PACKAGE_PREFIX}giftiio)
+add_library(${GIFTICLIB_NAME} gifti_io.c gifti_xml.c)
+set_target_properties(${GIFTICLIB_NAME} PROPERTIES
  ${GIFTI_LIBRARY_PROPERTIES}
  PUBLIC_HEADER "gifti_io.h;gifti_xml.h")
 target_link_libraries(
-  giftiio 
+  ${GIFTICLIB_NAME} 
     PUBLIC 
       $<TARGET_NAME_IF_EXISTS:NIFTI::nifti2>
       $<TARGET_NAME_IF_EXISTS:${NIFTI_PACKAGE_PREFIX}nifti2>
@@ -120,14 +120,14 @@ target_link_libraries(
 
 add_executable(gifti_tool gifti_tool.c)
 set_target_properties(gifti_tool PROPERTIES PUBLIC_HEADER "gifti_xml.h;gifti_io.h")
-target_link_libraries(gifti_tool PUBLIC giftiio  ${EXPAT_LIBRARIES} ${ZLIB_LIBRARIES})
+target_link_libraries(gifti_tool PUBLIC ${GIFTICLIB_NAME}  ${EXPAT_LIBRARIES} ${ZLIB_LIBRARIES})
 
 add_executable(gifti_test gifti_test.c)
 set_target_properties(gifti_test PROPERTIES PUBLIC_HEADER gifti_test.h)
-target_link_libraries(gifti_test giftiio)
+target_link_libraries(gifti_test ${GIFTICLIB_NAME})
 
 # binaries
-install(TARGETS giftiio gifti_tool gifti_test
+install(TARGETS ${GIFTICLIB_NAME} gifti_tool gifti_test
     EXPORT ${GIFTI_INSTALL_EXPORT_NAME}
     RUNTIME DESTINATION ${GIFTI_INSTALL_BIN_DIR} COMPONENT RuntimeLibraries
     LIBRARY DESTINATION ${GIFTI_INSTALL_LIB_DIR} COMPONENT RuntimeLibraries
