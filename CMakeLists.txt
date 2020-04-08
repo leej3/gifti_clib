@@ -81,9 +81,19 @@ set(GIFTI_SHAREDLIB_VERSION "0.0.0")
 string( REGEX MATCH "^[0-9]+" GIFTI_SHAREDLIB_SOVERSION ${GIFTI_SHAREDLIB_VERSION})
 set(GIFTI_LIBRARY_PROPERTIES VERSION ${GIFTI_SHAREDLIB_VERSION} SOVERSION ${GIFTI_SHAREDLIB_SOVERSION})
 
+
 add_library(giftiio gifti_io.c gifti_xml.c)
-set_target_properties(giftiio PROPERTIES ${GIFTI_LIBRARY_PROPERTIES})
-target_link_libraries(giftiio ${EXPAT_LIBRARIES} ${ZLIB_LIBRARIES} ${NIFTI_PACKAGE_PREFIX}nifti2)
+set_target_properties(giftiio PROPERTIES
+ ${GIFTI_LIBRARY_PROPERTIES}
+ PUBLIC_HEADER "gifti_io.h;gifti_xml.h")
+target_link_libraries(
+  giftiio 
+    PUBLIC 
+      $<TARGET_NAME_IF_EXISTS:NIFTI::nifti2>
+      $<TARGET_NAME_IF_EXISTS:${NIFTI_PACKAGE_PREFIX}nifti2>
+      ${EXPAT_LIBRARIES} 
+      ${ZLIB_LIBRARIES}
+      )
 
 add_executable(gifti_tool gifti_tool.c)
 target_link_libraries(gifti_tool giftiio ${EXPAT_LIBRARIES} ${ZLIB_LIBRARIES} ${NIFTI_PACKAGE_PREFIX}nifti2)
