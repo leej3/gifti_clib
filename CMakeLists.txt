@@ -88,8 +88,8 @@ else()
             # SOURCE_DIR     ${CMAKE_CURRENT_LIST_DIR}/nifti_clib_download # <- not standard,  remove this line to download in binary tree
             )
     FetchContent_GetProperties(fetch_nifti_clib_git_repo)
-
-    if(NOT fetch_nifti_clib_git_repo_POPULATED)
+    # Add a check to see if ITKniftiio has already been created
+    if(NOT (TARGET ITKniftiio OR fetch_nifti_clib_git_repo_POPULATED))
         set(FETCHCONTENT_QUIET OFF)
         message(STATUS "Fetching nifti_clib targets")
         FetchContent_Populate(fetch_nifti_clib_git_repo)
