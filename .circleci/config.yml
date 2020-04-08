@@ -19,12 +19,31 @@ jobs:
             make \
             gcc 
       - checkout
+
       - run:
-          name: Build and test gifti
+          name: Build and test gifti using prefix
+          command: |
+            mkdir ../build_with_prefix
+            cd ../build_with_prefix
+            cmake ../gifti_clib -DNIFTI_PACKAGE_PREFIX=test_
+            make
+            ctest --output-on-failure
+
+      - run:
+          name: Build and test gifti, with install
           command: |
             mkdir ../build
             cd ../build
             cmake ../gifti_clib
+            make install
+            ctest --output-on-failure
+
+      - run:
+          name: Make use of installed nifti_clib
+          command: |
+            mkdir ../build_with_sys_nifti
+            cd ../build_with_sys_nifti
+            cmake ../gifti_clib -DUSE_SYSTEM_NIFTI=ON
             make
             ctest --output-on-failure
 
