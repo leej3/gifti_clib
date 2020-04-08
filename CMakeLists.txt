@@ -26,20 +26,43 @@ project(gifticlib
         DESCRIPTION "Geometry format under the Neuroimaging Informatics Technology Initiative (NIfTI)."
         LANGUAGES C)
 
-# install destinations
-set(GIFTI_INSTALL_BIN_DIR "${CMAKE_INSTALL_PREFIX}/bin")
-set(GIFTI_INSTALL_LIB_DIR "${CMAKE_INSTALL_PREFIX}/lib")
-set(GIFTI_INSTALL_INCLUDE_DIR "${CMAKE_INSTALL_PREFIX}/include/gifti")
-
-
+# Add module directory
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/cmake)
+include(gifti_macros)
 option(TEST_GIFTI "Enable tests" ON)
 if(${TEST_GIFTI})
     enable_testing()
 endif()
+
+# INSTALLATION SETTINGS
+
+# NIFTI_install_choices
+set_if_not_defined(USE_NIFTI2_CODE ON CACHE BOOL "Do not build NIFTI2 provided by NIFTI")
+set_if_not_defined(USE_FSL_CODE ON CACHE BOOL "Do not build FSL provided by NIFTI")
+set_if_not_defined(USE_CIFTI_CODE ON  CACHE BOOL "Do not build CIFTI provided by NIFTI")
+set_if_not_defined(USE_NIFTICDF_CODE ON CACHE BOOL "Do not build NIFTICDF provided by NIFTI")
+set_if_not_defined(NIFTI_USE_PACKAGING OFF CACHE BOOL "Do not use packaging from nifti when included as part of another package")
+set_if_not_defined(NIFTI_BUILD_APPLICATIONS ON CACHE BOOL "Do not build applications provided by NIFTI")
+if (NOT NIFTI_PACKAGE_PREFIX)
+set(NIFTI_PACKAGE_PREFIX "" CACHE STRING "NIFTI package can be installed with a prefix (the same one is used for gifti).")
+endif()
+
+set_if_not_defined(PACKAGE_NAME ${NIFTI_PACKAGE_PREFIX}GIFTI)
+set_if_not_defined(GIFTI_INSTALL_EXPORT_NAME ${PACKAGE_NAME}Targets)
+# GIFTI install destinations
+set_if_not_defined(GIFTI_INSTALL_BIN_DIR ${CMAKE_INSTALL_PREFIX}/bin)
+set_if_not_defined(GIFTI_INSTALL_LIB_DIR ${CMAKE_INSTALL_PREFIX}/lib)
+set_if_not_defined(GIFTI_INSTALL_INCLUDE_DIR ${CMAKE_INSTALL_PREFIX}/include)
+
+# Other settings
+option(USE_TARGET_NAMESPACING "Add namespacing to exported targets." ON)
 option(BUILD_SHARED_LIBS "Toggle building shared libraries." ON)
 add_definitions(-DHAVE_ZLIB)
 
-find_package(ITK)
+
+
+# Finding dependencies
+find_package(ITK QUIET)
 if(ITK_FOUND)
 # ITK provides expat and zlib.
    include(${ITK_USE_FILE})
@@ -96,28 +119,57 @@ target_link_libraries(
       )
 
 add_executable(gifti_tool gifti_tool.c)
-target_link_libraries(gifti_tool giftiio ${EXPAT_LIBRARIES} ${ZLIB_LIBRARIES} ${NIFTI_PACKAGE_PREFIX}nifti2)
+set_target_properties(gifti_tool PROPERTIES PUBLIC_HEADER "gifti_xml.h;gifti_io.h")
+target_link_libraries(gifti_tool PUBLIC giftiio  ${EXPAT_LIBRARIES} ${ZLIB_LIBRARIES})
 
 add_executable(gifti_test gifti_test.c)
+set_target_properties(gifti_test PROPERTIES PUBLIC_HEADER gifti_test.h)
 target_link_libraries(gifti_test giftiio)
 
 # binaries
 install(TARGETS giftiio gifti_tool gifti_test
+    EXPORT ${GIFTI_INSTALL_EXPORT_NAME}
     RUNTIME DESTINATION ${GIFTI_INSTALL_BIN_DIR} COMPONENT RuntimeLibraries
     LIBRARY DESTINATION ${GIFTI_INSTALL_LIB_DIR} COMPONENT RuntimeLibraries
-    ARCHIVE DESTINATION ${GIFTI_INSTALL_LIB_DIR} COMPONENT Development)
+    ARCHIVE DESTINATION ${GIFTI_INSTALL_LIB_DIR} COMPONENT Development
+    PUBLIC_HEADER DESTINATION ${GIFTI_INSTALL_INCLUDE_DIR} COMPONENT Development
+    INCLUDES DESTINATION ${GIFTI_INSTALL_INCLUDE_DIR} COMPONENT Development
+    )
 
-# headers
-install(FILES gifti_io.h gifti_xml.h
-    DESTINATION ${GIFTI_INSTALL_INCLUDE_DIR}
-    COMPONENT Development)
+# For packaging this project:
+if(NIFTI_PACKAGE_PREFIX STREQUAL "")
+  include(CMakePackageConfigHelpers)
+  set(CONFIG_SETUP_DIR ${CMAKE_CURRENT_BINARY_DIR}/${PACKAGE_NAME})
+  set(ConfigPackageLocation share/cmake/${PACKAGE_NAME})
 
-#######################################################################
-## Add the cpack configuration settings last
-option(GIFTI_USE_PACKAGING "Configure the packaging options for GIFTI" OFF)
-mark_as_advanced(GIFTI_USE_PACKAGING)
-if(GIFTI_USE_PACKAGING)
-  include(cmake/GIFTICPackConfig.cmake)
+  write_basic_package_version_file(
+        ${CONFIG_SETUP_DIR}/${PACKAGE_NAME}ConfigVersion.cmake
+        VERSION ${GIT_REPO_VERSION}
+        COMPATIBILITY AnyNewerVersion
+  )
+
+  configure_file(cmake/GIFTIConfig.cmake
+        ${CONFIG_SETUP_DIR}/${PACKAGE_NAME}Config.cmake
+        COPYONLY
+        )
+  install(EXPORT ${GIFTI_INSTALL_EXPORT_NAME}
+       NAMESPACE     ${PACKAGE_NAME}::
+       FILE GIFTITargets.cmake
+       DESTINATION   ${ConfigPackageLocation}
+       )
+
+  install(FILES
+           ${CONFIG_SETUP_DIR}/${PACKAGE_NAME}Config.cmake
+           ${CONFIG_SETUP_DIR}/${PACKAGE_NAME}ConfigVersion.cmake
+        DESTINATION   ${ConfigPackageLocation}
+  )
+  #######################################################################
+  ## Add the cpack configuration settings last
+  option(GIFTI_USE_PACKAGING "Configure the packaging options for GIFTI" OFF)
+  mark_as_advanced(GIFTI_USE_PACKAGING)
+  if(GIFTI_USE_PACKAGING)
+    include(cmake/GIFTICPackConfig.cmake)
+  endif()
 endif()
 
 #
