@@ -63,7 +63,7 @@ add_definitions(-DHAVE_ZLIB)
 
 # Finding dependencies
 find_package(ITK QUIET)
-if(ITK_FOUND OR ITKEXPAT)
+if(ITK_FOUND OR TARGET ITKEXPAT)
   # ITK is found or driving the build and  provides expat and zlib.
    include(${ITK_USE_FILE})
    set(EXPAT_LIBRARIES ITKEXPAT)
