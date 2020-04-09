@@ -50,9 +50,9 @@ endif()
 set_if_not_defined(PACKAGE_NAME ${NIFTI_PACKAGE_PREFIX}GIFTI)
 set_if_not_defined(GIFTI_INSTALL_EXPORT_NAME ${PACKAGE_NAME}Targets)
 # GIFTI install destinations
-set_if_not_defined(GIFTI_INSTALL_BIN_DIR ${CMAKE_INSTALL_PREFIX}/bin)
-set_if_not_defined(GIFTI_INSTALL_LIB_DIR ${CMAKE_INSTALL_PREFIX}/lib)
-set_if_not_defined(GIFTI_INSTALL_INCLUDE_DIR ${CMAKE_INSTALL_PREFIX}/include)
+set_if_not_defined(GIFTI_INSTALL_BIN_DIR bin)
+set_if_not_defined(GIFTI_INSTALL_LIB_DIR lib)
+set_if_not_defined(GIFTI_INSTALL_INCLUDE_DIR include)
 
 # Other settings
 option(USE_TARGET_NAMESPACING "Add namespacing to exported targets." ON)
