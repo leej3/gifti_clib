@@ -65,6 +65,16 @@ add_definitions(-DHAVE_ZLIB)
 # Testing also requires GIFTI_BUILD_APPLICATIONS to be set to ON
 set_if_not_defined(GIFTI_BUILD_TESTING "${BUILD_TESTING}")
 
+# Add a default attempt at setting the run path correctly for binaries
+if(NOT CMAKE_SKIP_INSTALL_RPATH)
+  file(RELATIVE_PATH relDir ${CMAKE_INSTALL_PREFIX}/${GIFTI_INSTALL_BIN_DIR} ${CMAKE_INSTALL_PREFIX}/${GIFTI_INSTALL_LIB_DIR})
+  if(APPLE)
+    set_if_not_defined(CMAKE_INSTALL_RPATH  "@loader_path/${relDir}")
+  else()
+    set_if_not_defined(CMAKE_INSTALL_RPATH   "\$ORIGIN/${relDir}")
+  endif()
+endif()
+
 # Finding dependencies
 if(USE_SYSTEM_ITK)
   find_package(ITK QUIET)
