@@ -68,6 +68,7 @@ if(ITK_FOUND OR TARGET ITKEXPAT)
    include(${ITK_USE_FILE})
    set(EXPAT_LIBRARIES ITKEXPAT)
    set(ZLIB_LIBRARIES ITKznz)
+   set(GIFTI_INSTALL_EXPORT_NAME ${ITK3P_INSTALL_EXPORT_NAME})
    set(${NIFTI_PACKAGE_PREFIX} ITK)
 else()
 # Otherwise, get it from elsewhere.
@@ -139,6 +140,39 @@ install(TARGETS ${GIFTICLIB_NAME} gifti_tool gifti_test
     PUBLIC_HEADER DESTINATION ${GIFTI_INSTALL_INCLUDE_DIR} COMPONENT Development
     INCLUDES DESTINATION ${GIFTI_INSTALL_INCLUDE_DIR} COMPONENT Development
     )
+
+if(GIFTI_INSTALL_NO_DEVELOPMENT)
+  install(TARGETS ${installed_targets}
+          EXPORT ${GIFTI_INSTALL_EXPORT_NAME}
+          RUNTIME 
+            COMPONENT RuntimeBinaries
+            DESTINATION ${GIFTI_INSTALL_RUNTIME_DIR} 
+          ARCHIVE 
+            DESTINATION ${GIFTI_INSTALL_LIBRARY_DIR}
+            COMPONENT RuntimeLibraries
+          LIBRARY 
+            DESTINATION ${GIFTI_INSTALL_LIBRARY_DIR}
+            COMPONENT RuntimeLibraries
+          )
+else()
+  install(TARGETS ${installed_targets}
+          EXPORT ${GIFTI_INSTALL_EXPORT_NAME}
+          RUNTIME 
+            COMPONENT RuntimeBinaries
+            DESTINATION ${GIFTI_INSTALL_RUNTIME_DIR} 
+          ARCHIVE 
+            DESTINATION ${GIFTI_INSTALL_LIBRARY_DIR}
+            COMPONENT RuntimeLibraries
+          LIBRARY 
+            DESTINATION ${GIFTI_INSTALL_LIBRARY_DIR}
+            COMPONENT RuntimeLibraries
+          PUBLIC_HEADER
+            DESTINATION ${GIFTI_INSTALL_INCLUDE_DIR}
+          INCLUDES
+            DESTINATION ${GIFTI_INSTALL_INCLUDE_DIR}
+          )
+  endif()
+
 
 # For packaging this project:
 if(NIFTI_PACKAGE_PREFIX STREQUAL "")
