@@ -52,7 +52,7 @@ endif()
 
 set_if_not_defined(PACKAGE_NAME ${NIFTI_PACKAGE_PREFIX}GIFTI)
 set_if_not_defined(GIFTI_INSTALL_EXPORT_NAME ${PACKAGE_NAME}Targets)
-set_if_not_defined(GIFTI_BUILD_APPLICATIONS OFF)
+set_if_not_defined(GIFTI_BUILD_APPLICATIONS ON)
 
 # GIFTI install destinations
 set_if_not_defined(GIFTI_INSTALL_BIN_DIR bin)
