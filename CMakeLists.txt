@@ -26,15 +26,23 @@ project(gifticlib
         DESCRIPTION "Geometry format under the Neuroimaging Informatics Technology Initiative (NIfTI)."
         LANGUAGES C)
 
+include(CMakeDependentOption)
 # Add module directory
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/cmake)
 include(gifti_macros)
+
+set_property(GLOBAL PROPERTY installed_targets)
+
 option(TEST_GIFTI "Enable tests" ON)
 if(${TEST_GIFTI})
     enable_testing()
 endif()
 
 # INSTALLATION SETTINGS
+
+# Find and use system installed dependencies
+option(USE_SYSTEM_ITK "Search for a version of ITK installed on the system." OFF)
+set_if_not_defined(USE_SYSTEM_NIFTI OFF)
 
 # NIFTI_install_choices
 set_if_not_defined(USE_NIFTI2_CODE ON CACHE BOOL "Do not build NIFTI2 provided by NIFTI")
@@ -49,33 +57,40 @@ endif()
 
 set_if_not_defined(PACKAGE_NAME ${NIFTI_PACKAGE_PREFIX}GIFTI)
 set_if_not_defined(GIFTI_INSTALL_EXPORT_NAME ${PACKAGE_NAME}Targets)
+set_if_not_defined(GIFTI_BUILD_APPLICATIONS OFF)
+
 # GIFTI install destinations
 set_if_not_defined(GIFTI_INSTALL_BIN_DIR bin)
 set_if_not_defined(GIFTI_INSTALL_LIB_DIR lib)
 set_if_not_defined(GIFTI_INSTALL_INCLUDE_DIR include)
 
 # Other settings
-option(USE_TARGET_NAMESPACING "Add namespacing to exported targets." ON)
 option(BUILD_SHARED_LIBS "Toggle building shared libraries." ON)
 add_definitions(-DHAVE_ZLIB)
 
 
 
 # Finding dependencies
-find_package(ITK QUIET)
+if(USE_SYSTEM_ITK)
+  find_package(ITK QUIET)
+endif()
+
 if(ITK_FOUND OR TARGET ITKEXPAT)
-  # ITK is found or driving the build and  provides expat and zlib.
+  # ITK is found or driving the build and provides expat and zlib.
    include(${ITK_USE_FILE})
    set(EXPAT_LIBRARIES ITKEXPAT)
    set(ZLIB_LIBRARIES ITKznz)
    set(GIFTI_INSTALL_EXPORT_NAME ${ITK3P_INSTALL_EXPORT_NAME})
    set(${NIFTI_PACKAGE_PREFIX} ITK)
+   set(GIFTI_BUILD_APPLICATIONS OFF)
 else()
 # Otherwise, get it from elsewhere.
   find_package(EXPAT REQUIRED)
   find_package(ZLIB REQUIRED)
   if(USE_SYSTEM_NIFTI)
     find_package(NIFTI REQUIRED)
+  elseif(TARGET ITKniftiio)
+    # ITK provides ITKniftiio
   else()
     ### STEP 2 -- fetch nifti_clib immediately at configuration time, so add_subdirectory can be used.
     include(FetchContent)
@@ -90,7 +105,7 @@ else()
             )
     FetchContent_GetProperties(fetch_nifti_clib_git_repo)
     # Add a check to see if ITKniftiio has already been created
-    if(NOT (TARGET ITKniftiio OR fetch_nifti_clib_git_repo_POPULATED))
+    if(NOT fetch_nifti_clib_git_repo_POPULATED)
         set(FETCHCONTENT_QUIET OFF)
         message(STATUS "Fetching nifti_clib targets")
         FetchContent_Populate(fetch_nifti_clib_git_repo)
@@ -107,7 +122,7 @@ set(GIFTI_LIBRARY_PROPERTIES VERSION ${GIFTI_SHAREDLIB_VERSION} SOVERSION ${GIFT
 
 set(GIFTICLIB_NAME ${NIFTI_PACKAGE_PREFIX}giftiio)
 
-add_library(${GIFTICLIB_NAME} gifti_io.c gifti_xml.c)
+add_gifti_library(${GIFTICLIB_NAME} gifti_io.c gifti_xml.c)
 set_target_properties(${GIFTICLIB_NAME} PROPERTIES
  ${GIFTI_LIBRARY_PROPERTIES}
  PUBLIC_HEADER "gifti_io.h;gifti_xml.h")
@@ -123,6 +138,7 @@ target_link_libraries(
       ${ZLIB_LIBRARIES}
       )
 
+if(GIFTI_BUILD_APPLICATIONS)
 add_executable(gifti_tool gifti_tool.c)
 set_target_properties(gifti_tool PROPERTIES PUBLIC_HEADER "gifti_xml.h;gifti_io.h")
 target_link_libraries(gifti_tool PUBLIC ${GIFTICLIB_NAME}  ${EXPAT_LIBRARIES} ${ZLIB_LIBRARIES})
@@ -130,6 +146,7 @@ target_link_libraries(gifti_tool PUBLIC ${GIFTICLIB_NAME}  ${EXPAT_LIBRARIES} ${
 add_executable(gifti_test gifti_test.c)
 set_target_properties(gifti_test PROPERTIES PUBLIC_HEADER gifti_test.h)
 target_link_libraries(gifti_test ${GIFTICLIB_NAME})
+endif()
 
 # binaries
 install(TARGETS ${GIFTICLIB_NAME} gifti_tool gifti_test
