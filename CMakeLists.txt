@@ -64,6 +64,9 @@ option(BUILD_SHARED_LIBS "Toggle building shared libraries." ON)
 add_definitions(-DHAVE_ZLIB)
 # Testing also requires GIFTI_BUILD_APPLICATIONS to be set to ON
 set_if_not_defined(GIFTI_BUILD_TESTING "${BUILD_TESTING}")
+set_if_not_defined(GIFTI_INSTALL_NO_DEVELOPMENT 0)
+set_if_not_defined(GIFTI_INSTALL_NO_LIBRARIES 0)
+set_if_not_defined(GIFTI_INSTALL_NO_APPLICATIONS 0)
 
 # Add a default attempt at setting the run path correctly for binaries
 if(NOT CMAKE_SKIP_INSTALL_RPATH)
