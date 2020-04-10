@@ -33,11 +33,6 @@ include(gifti_macros)
 
 set_property(GLOBAL PROPERTY installed_targets)
 
-option(TEST_GIFTI "Enable tests" ON)
-if(${TEST_GIFTI})
-    enable_testing()
-endif()
-
 # INSTALLATION SETTINGS
 
 # Find and use system installed dependencies
@@ -67,8 +62,8 @@ set_if_not_defined(GIFTI_INSTALL_INCLUDE_DIR include)
 # Other settings
 option(BUILD_SHARED_LIBS "Toggle building shared libraries." ON)
 add_definitions(-DHAVE_ZLIB)
-
-
+# Testing also requires GIFTI_BUILD_APPLICATIONS to be set to ON
+set_if_not_defined(GIFTI_BUILD_TESTING "${BUILD_TESTING}")
 
 # Finding dependencies
 if(USE_SYSTEM_ITK)
@@ -139,36 +134,28 @@ target_link_libraries(
       )
 
 if(GIFTI_BUILD_APPLICATIONS)
-add_executable(gifti_tool gifti_tool.c)
+add_gifti_executable(gifti_tool gifti_tool.c)
 set_target_properties(gifti_tool PROPERTIES PUBLIC_HEADER "gifti_xml.h;gifti_io.h")
 target_link_libraries(gifti_tool PUBLIC ${GIFTICLIB_NAME}  ${EXPAT_LIBRARIES} ${ZLIB_LIBRARIES})
 
-add_executable(gifti_test gifti_test.c)
+add_gifti_executable(gifti_test gifti_test.c)
 set_target_properties(gifti_test PROPERTIES PUBLIC_HEADER gifti_test.h)
 target_link_libraries(gifti_test ${GIFTICLIB_NAME})
 endif()
 
-# binaries
-install(TARGETS ${GIFTICLIB_NAME} gifti_tool gifti_test
-    EXPORT ${GIFTI_INSTALL_EXPORT_NAME}
-    RUNTIME DESTINATION ${GIFTI_INSTALL_BIN_DIR} COMPONENT RuntimeLibraries
-    LIBRARY DESTINATION ${GIFTI_INSTALL_LIB_DIR} COMPONENT RuntimeLibraries
-    ARCHIVE DESTINATION ${GIFTI_INSTALL_LIB_DIR} COMPONENT Development
-    PUBLIC_HEADER DESTINATION ${GIFTI_INSTALL_INCLUDE_DIR} COMPONENT Development
-    INCLUDES DESTINATION ${GIFTI_INSTALL_INCLUDE_DIR} COMPONENT Development
-    )
-
+get_property(installed_targets GLOBAL PROPERTY installed_targets)
+message("Installed_targets: ${installed_targets}")
 if(GIFTI_INSTALL_NO_DEVELOPMENT)
   install(TARGETS ${installed_targets}
           EXPORT ${GIFTI_INSTALL_EXPORT_NAME}
           RUNTIME 
             COMPONENT RuntimeBinaries
-            DESTINATION ${GIFTI_INSTALL_RUNTIME_DIR} 
+            DESTINATION ${GIFTI_INSTALL_BIN_DIR} 
           ARCHIVE 
-            DESTINATION ${GIFTI_INSTALL_LIBRARY_DIR}
+            DESTINATION ${GIFTI_INSTALL_LIB_DIR}
             COMPONENT RuntimeLibraries
           LIBRARY 
-            DESTINATION ${GIFTI_INSTALL_LIBRARY_DIR}
+            DESTINATION ${GIFTI_INSTALL_LIB_DIR}
             COMPONENT RuntimeLibraries
           )
 else()
@@ -176,12 +163,12 @@ else()
           EXPORT ${GIFTI_INSTALL_EXPORT_NAME}
           RUNTIME 
             COMPONENT RuntimeBinaries
-            DESTINATION ${GIFTI_INSTALL_RUNTIME_DIR} 
+            DESTINATION ${GIFTI_INSTALL_BIN_DIR} 
           ARCHIVE 
-            DESTINATION ${GIFTI_INSTALL_LIBRARY_DIR}
+            DESTINATION ${GIFTI_INSTALL_LIB_DIR}
             COMPONENT RuntimeLibraries
           LIBRARY 
-            DESTINATION ${GIFTI_INSTALL_LIBRARY_DIR}
+            DESTINATION ${GIFTI_INSTALL_LIB_DIR}
             COMPONENT RuntimeLibraries
           PUBLIC_HEADER
             DESTINATION ${GIFTI_INSTALL_INCLUDE_DIR}
@@ -229,10 +216,9 @@ endif()
 
 #
 # Testing
-
-# enable_testing() sets the following variable:
-if(${CMAKE_TESTING_ENABLED})
+if(GIFTI_BUILD_TESTING AND GIFTI_BUILD_APPLICATIONS)
   include(CTest)
+  if(DOWNLOAD_TEST_DATA)
   if(CMAKE_VERSION VERSION_LESS 3.11.0)
     # CMAKE VERSION 3.11.0 needed for fetching data with cmake
     message(
@@ -243,7 +229,7 @@ if(${CMAKE_TESTING_ENABLED})
 
   include(FetchContent) # fetch data a configure time to simplify tests If new
                         # or changed data is needed, add that data to the
-                        # https://github.com/NIFTI-Imaging/nifti-test-data repo
+                        # https://github.com/NIFTI-Imaging/gifti-test-data repo
                         # make a new release, and then update the URL and hash
                         # (shasum -a 256 <downloaded tarball>).
   fetchcontent_declare(
@@ -253,8 +239,11 @@ if(${CMAKE_TESTING_ENABLED})
     URL_HASH
     SHA256=9b97e830ad27a82efcacb41ea3a7c573b34b7b3ca47e0c0bfb65b44f604199c2)
   fetchcontent_getproperties(gifti_test_data)
-  set(FETCHCONTENT_QUIET OFF)
-  fetchcontent_populate(gifti_test_data)
+    if(NOT gifti_test_data_POPULATED)
+      set(FETCHCONTENT_QUIET OFF)
+      FetchContent_Populate( gifti_test_data )
+    endif()
+  endif()
 endif()
 
 set(TEST_SCRIPT_DIR ${CMAKE_CURRENT_LIST_DIR}/regress_tests/cmake_test_scripts)
@@ -270,35 +259,56 @@ add_test(NAME gifti_disp_hdr
          COMMAND $<TARGET_FILE:gifti_tool> 
                  -disp_hdr 
                  -infiles ${TEST_DATA}/anat0.nii)
+set_tests_properties( gifti_disp_hdr PROPERTIES LABELS NEEDS_DATA)
 add_test(NAME gifti_disp_nim
          COMMAND $<TARGET_FILE:gifti_tool> 
                  -disp_nim 
                  -infiles ${TEST_DATA}/anat0.nii)
+set_tests_properties( gifti_disp_nim PROPERTIES LABELS NEEDS_DATA)
 add_test(NAME gifti_disp_ext
          COMMAND $<TARGET_FILE:gifti_tool> 
                  -disp_ext 
                  -infiles ${TEST_DATA}/anat0.nii)
+set_tests_properties( gifti_disp_ext PROPERTIES LABELS NEEDS_DATA)
 add_test(NAME gifti_header_check
          COMMAND $<TARGET_FILE:gifti_tool> 
                  -check_hdr 
                  -infiles ${TEST_DATA}/anat0.nii)
+set_tests_properties( gifti_header_check PROPERTIES LABELS NEEDS_DATA)
 add_test(NAME gifti_nim_check
          COMMAND $<TARGET_FILE:gifti_tool> 
                  -check_nim 
                  -infiles ${TEST_DATA}/anat0.nii)
+set_tests_properties( gifti_nim_check PROPERTIES LABELS NEEDS_DATA)
 add_test(NAME gifti_pial_short_verbose
         COMMAND $<TARGET_FILE:gifti_tool> 
                  -check_nim 
                  -infile ${TEST_DATA}/ascii.pial.short.gii)
+set_tests_properties( gifti_pial_short_verbose PROPERTIES LABELS NEEDS_DATA)
 add_test(NAME gifti_show_color_table_gifti
         COMMAND $<TARGET_FILE:gifti_tool> 
                 -show_gifti
                 -infile ${TEST_DATA}/color.table.gii)
+set_tests_properties( gifti_show_color_table_gifti PROPERTIES LABELS NEEDS_DATA)
 add_test(NAME gifti_show_surfs
         COMMAND $<TARGET_FILE:gifti_tool> 
                 -show_gifti
                 -infile ${TEST_DATA}/b64gz.ts.3.gii)
+set_tests_properties( gifti_show_surfs PROPERTIES LABELS NEEDS_DATA)
 
+# Include test to verify linking in installed executables
+# The test should only be added when applications are built, and no prefix string is set.
+cmake_dependent_option(
+  TEST_INSTALL "Add a test to check that linking to SO libraries occurs correctly during installation." ON
+  "${NIFTI_PACKAGE_PREFIX};${GIFTI_BUILD_APPLICATIONS};${BUILD_SHARED_LIBS};${GIFTI_BUILD_TESTING}" OFF
+)
+# Test that installed linking works
+if(TEST_INSTALL)
+  add_test(
+    NAME gifti_install_linking
+    COMMAND sh ${TEST_SCRIPT_DIR}/install_linking_test.sh ${CMAKE_MAKE_PROGRAM}
+    WORKING_DIRECTORY ${PROJECT_BINARY_DIR} )
+endif()
 
 
 if(UNIX) # unix needed to run shell scripts
@@ -312,5 +322,6 @@ if(UNIX) # unix needed to run shell scripts
     COMMAND bash -xeu ${TEST_SCRIPT_DIR}/${test_stubname}.sh
             $<TARGET_FILE:gifti_tool>
             ${TEST_DATA})
+  set_tests_properties( gifti_${test_stubname} PROPERTIES LABELS NEEDS_DATA)
   endforeach()
 endif()

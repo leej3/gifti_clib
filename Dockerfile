@@ -31,18 +31,18 @@ WORKDIR /gifti_build
 RUN cmake /gifti_clib \
  -DBUILD_SHARED_LIBS:BOOL=ON \
     && make install \
-    && ctest
+    && ctest --output-on-failure
 
 WORKDIR /gifti_build_with_sys_nifti
 RUN cmake /gifti_clib \
  -DBUILD_SHARED_LIBS:BOOL=ON \
  -DUSE_SYSTEM_NIFTI=ON \
     && make \
-    && ctest
+    && ctest --output-on-failure
 
 WORKDIR /gifti_build_with_prefix
 RUN cmake /gifti_clib \
  -DBUILD_SHARED_LIBS:BOOL=ON \
  -DNIFTI_PACKAGE_PREFIX=test_ \
     && make \
-    && ctest
+    && ctest --output-on-failure
