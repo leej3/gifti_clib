@@ -7,17 +7,43 @@ project(gifticlib
         DESCRIPTION "Geometry format under the Neuroimaging Informatics Technology Initiative (NIfTI)."
         LANGUAGES C)
 
-# install destinations
-set(GIFTI_INSTALL_BIN_DIR "${CMAKE_INSTALL_PREFIX}/bin")
-set(GIFTI_INSTALL_LIB_DIR "${CMAKE_INSTALL_PREFIX}/lib")
-set(GIFTI_INSTALL_INCLUDE_DIR "${CMAKE_INSTALL_PREFIX}/include/gifti")
 # Add module directory
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/cmake)
 include(gifti_macros)
 
 
+# INSTALLATION SETTINGS
+
+# Find and use system installed dependencies
+set_if_not_defined(USE_SYSTEM_NIFTI OFF)
+
+# NIFTI_install_choices
+set_if_not_defined(USE_NIFTI2_CODE ON CACHE BOOL "Do not build NIFTI2 provided by NIFTI")
+set_if_not_defined(USE_FSL_CODE OFF CACHE BOOL "Do not build FSL provided by NIFTI")
+set_if_not_defined(USE_CIFTI_CODE ON  CACHE BOOL "Do not build CIFTI provided by NIFTI")
+set_if_not_defined(USE_NIFTICDF_CODE ON CACHE BOOL "Do not build NIFTICDF provided by NIFTI")
+set_if_not_defined(NIFTI_USE_PACKAGING OFF CACHE BOOL "Do not use packaging from nifti when included as part of another package")
+set_if_not_defined(NIFTI_BUILD_APPLICATIONS ON CACHE BOOL "Do not build applications provided by NIFTI")
+if (NOT NIFTI_PACKAGE_PREFIX)
+set(NIFTI_PACKAGE_PREFIX "" CACHE STRING "NIFTI package can be installed with a prefix (the same one is used for gifti).")
+endif()
+
+set_if_not_defined(PACKAGE_NAME ${NIFTI_PACKAGE_PREFIX}GIFTI)
+set_if_not_defined(GIFTI_INSTALL_EXPORT_NAME ${PACKAGE_NAME}Targets)
+set_if_not_defined(GIFTI_BUILD_APPLICATIONS ON)
+
+# GIFTI install destinations
+set_if_not_defined(GIFTI_INSTALL_BIN_DIR bin)
+set_if_not_defined(GIFTI_INSTALL_LIB_DIR lib)
+set_if_not_defined(GIFTI_INSTALL_ARCHIVE_DIR lib)
+set_if_not_defined(GIFTI_INSTALL_INCLUDE_DIR include)
+
+# Other settings
 option(BUILD_SHARED_LIBS "Toggle building shared libraries." ON)
 add_definitions(-DHAVE_ZLIB)
+set_if_not_defined(GIFTI_INSTALL_NO_DEVELOPMENT 0)
+set_if_not_defined(GIFTI_INSTALL_NO_LIBRARIES 0)
+set_if_not_defined(GIFTI_INSTALL_NO_APPLICATIONS 0)
 set_if_not_defined(DOWNLOAD_TEST_DATA 1)
 
 find_package(ITK)
