@@ -8,6 +8,7 @@ project(gifticlib
         DESCRIPTION "Geometry format under the Neuroimaging Informatics Technology Initiative (NIfTI)."
         LANGUAGES C)
 
+include(CMakeDependentOption)
 # Add module directory
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/cmake)
 include(gifti_macros)
@@ -47,6 +48,19 @@ set_if_not_defined(GIFTI_INSTALL_NO_DEVELOPMENT 0)
 set_if_not_defined(GIFTI_INSTALL_NO_LIBRARIES 0)
 set_if_not_defined(GIFTI_INSTALL_NO_APPLICATIONS 0)
 set_if_not_defined(DOWNLOAD_TEST_DATA 1)
+
+# Add a default attempt at setting the run path correctly for binaries
+if(NOT CMAKE_SKIP_INSTALL_RPATH)
+  file(RELATIVE_PATH relDir
+       ${CMAKE_INSTALL_PREFIX}/${GIFTI_INSTALL_BIN_DIR}
+       ${CMAKE_INSTALL_PREFIX}/${GIFTI_INSTALL_LIB_DIR}
+  )
+  if(APPLE)
+    set_if_not_defined(CMAKE_INSTALL_RPATH "@loader_path/${relDir}")
+  else()
+    set_if_not_defined(CMAKE_INSTALL_RPATH "\$ORIGIN/${relDir}")
+  endif()
+endif()
 
 # Finding dependencies
 if(TARGET ITKEXPAT)
@@ -303,6 +317,24 @@ add_test(NAME gifti_show_surfs
                 -infile ${TEST_DATA}/b64gz.ts.3.gii)
 set_tests_properties( gifti_show_surfs PROPERTIES LABELS NEEDS_DATA)
 
+# Include test to verify linking in installed executables The test
+# should only be added when applications are built, and no prefix
+# string is set.
+cmake_dependent_option(
+  TEST_INSTALL
+  "Add a test to check that linking to SO libraries occurs correctly during installation."
+  ON
+  "${NIFTI_PACKAGE_PREFIX};${GIFTI_BUILD_APPLICATIONS};${BUILD_SHARED_LIBS};${GIFTI_BUILD_TESTING}"
+  OFF
+)
+# Test that installed linking works
+if(TEST_INSTALL)
+  add_test(
+    NAME gifti_install_linking
+    COMMAND sh ${TEST_SCRIPT_DIR}/install_linking_test.sh ${CMAKE_MAKE_PROGRAM}
+    WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
+  )
+endif()
 
 
 if(UNIX) # unix needed to run shell scripts
