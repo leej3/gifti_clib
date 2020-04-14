@@ -90,17 +90,47 @@ install(FILES gifti_io.h gifti_xml.h
     DESTINATION ${GIFTI_INSTALL_INCLUDE_DIR}
     COMPONENT Development)
 
-#######################################################################
-## Add the cpack configuration settings last
-option(GIFTI_USE_PACKAGING "Configure the packaging options for GIFTI" OFF)
-mark_as_advanced(GIFTI_USE_PACKAGING)
-if(GIFTI_USE_PACKAGING)
-  include(cmake/GIFTICPackConfig.cmake)
+
+# Some utility files for downstreams
+if(PACKAGE_NAME STREQUAL "GIFTI")
+  include(CMakePackageConfigHelpers)
+  set(CONFIG_SETUP_DIR ${CMAKE_CURRENT_BINARY_DIR}/${PACKAGE_NAME})
+  set(ConfigPackageLocation share/cmake/${PACKAGE_NAME})
+
+  write_basic_package_version_file(
+    ${CONFIG_SETUP_DIR}/${PACKAGE_NAME}ConfigVersion.cmake
+    VERSION ${GIT_REPO_VERSION}
+    COMPATIBILITY AnyNewerVersion
+  )
+
+  configure_file(
+    cmake/GIFTIConfig.cmake
+    ${CONFIG_SETUP_DIR}/${PACKAGE_NAME}Config.cmake COPYONLY
+  )
+  install(
+    EXPORT ${GIFTI_INSTALL_EXPORT_NAME}
+    NAMESPACE ${PACKAGE_NAME}::
+    FILE GIFTITargets.cmake
+    DESTINATION ${ConfigPackageLocation}
+  )
+
+  install(FILES ${CONFIG_SETUP_DIR}/${PACKAGE_NAME}Config.cmake
+                ${CONFIG_SETUP_DIR}/${PACKAGE_NAME}ConfigVersion.cmake
+          DESTINATION ${ConfigPackageLocation}
+  )
+  # ##################################################################
+  # Add the cpack configuration settings last
+  option(GIFTI_USE_PACKAGING
+         "Configure the packaging options for GIFTI" OFF
+  )
+  mark_as_advanced(GIFTI_USE_PACKAGING)
+  if(GIFTI_USE_PACKAGING)
+    include(cmake/GIFTICPackConfig.cmake)
+  endif()
 endif()
 
 #
 # Testing
-
 set_if_not_defined(BUILD_TESTING ON)
 set_if_not_defined(GIFTI_BUILD_TESTING ${BUILD_TESTING})
 if(GIFTI_BUILD_TESTING AND GIFTI_BUILD_APPLICATIONS)
