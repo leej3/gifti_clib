@@ -48,15 +48,12 @@ set_if_not_defined(GIFTI_INSTALL_NO_LIBRARIES 0)
 set_if_not_defined(GIFTI_INSTALL_NO_APPLICATIONS 0)
 set_if_not_defined(DOWNLOAD_TEST_DATA 1)
 
-find_package(ITK)
-if(ITK_FOUND)
-# ITK provides expat and zlib.
-   include(${ITK_USE_FILE})
-   set(EXPAT_LIBRARIES ITKEXPAT)
-   set(ZLIB_LIBRARIES ITKznz)
-   set(${NIFTI_PACKAGE_PREFIX} ITK)
+# Finding dependencies
+if(TARGET ITKEXPAT)
+  # ITK is driving the build and provides EXPAT_LIBRARIES and
+  # ZLIB_LIBRARIES.
 else()
-# Otherwise, get it from elsewhere.
+  # Otherwise, get dependencies from elsewhere.
   find_package(EXPAT REQUIRED)
   find_package(ZLIB REQUIRED)
   if(USE_SYSTEM_NIFTI)
@@ -110,6 +107,7 @@ set_target_properties(
 target_compile_definitions(
   ${GIFTICLIB_NAME}
   PUBLIC $<$<NOT:$<BOOL:${USE_NIFTI2_CODE}>>:"USE_NIFTI_VERSION_1">
+         ${GIFTIIO_COMPILE_DEF}
 )
 
 
