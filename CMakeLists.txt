@@ -37,6 +37,11 @@ else()
     # ITK provides ITKniftiio
   else()
     ### STEP 2 -- fetch nifti_clib immediately at configuration time, so add_subdirectory can be used.
+    if ( CMAKE_VERSION VERSION_LESS 3.11.0 )
+    # CMAKE VERSION 3.11.0 needed for fetching data with cmake
+      message(FATAL_ERROR "ERROR:CMake version 3.11.0 or greater is required to automatically download the nifti_clib dependency.")
+    endif()
+
     include(FetchContent)
     # If new or changed data is needed, add that data to the https://github.com/NIFTI-Imaging/nifti-test-data repo
     # make a new release, and then update the URL and hash (shasum -a 256 <downloaded tarball>).
