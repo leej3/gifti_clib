@@ -3,7 +3,7 @@ version: 2
 jobs:
   build:
     docker:
-      - image: ubuntu:eoan
+      - image: ubuntu:bionic
     working_directory: /tmp/src/gifti_clib
     steps:
       - run:
@@ -11,29 +11,68 @@ jobs:
           command: |
             apt-get update && apt-get install -y -q eatmydata \
             && eatmydata apt-get update && apt-get install -y -q  \
-            libexpat1-dev \
-            zlib1g-dev \
-            git \
-            wget \
             cmake \
+            gcc \
+            git \
+            libexpat1-dev \
             make \
-            gcc
+            wget \
+            zlib1g-dev \
       - checkout
+
+
       - run:
-          name: Build and test gifti
+          name: Install nifti manually for now
           command: |
-            mkdir ../build
-            cd ../build
-            export CMAKE_VER=3.11.4
+            cd /tmp
+            git clone --single-branch --branch update_installation https://github.com/leej3/nifti_clib.git
+            # git clone --single-branch --branch master https://github.com/NIFTI-Imaging/nifti_clib.git
+            d=nifti_build;mkdir $d;cd $d
+            cmake -DDOWNLOAD_TEST_DATA=OFF -DBUILD_SHARED_LIBS=ON ../nifti_clib
+            make install
+
+      - run:
+          name: Build and test gifti, when nifti1 is used
+          command: |
+            d=../build_nifti1;mkdir $d;cd $d
+            cmake ../gifti_clib \
+                -DUSE_NIFTI2_CODE=OFF \
+                -DUSE_SYSTEM_NIFTI=ON \
+                -DDOWNLOAD_TEST_DATA=OFF
+            make
+            ctest --output-on-failure -LE NEEDS_DATA
+
+      - run:
+          name: Build and test gifti, with install
+          command: |
+            d=../build;mkdir $d;cd $d
+            cmake ../gifti_clib \
+                -DTEST_INSTALL=OFF \
+                -DUSE_SYSTEM_NIFTI=ON \
+                -DDOWNLOAD_TEST_DATA=OFF
+            make install
+            ctest --output-on-failure -LE NEEDS_DATA
+            # Check installed gifti_tool has linked correctly
+            gifti_tool
+
+      - run:
+          working_directory: /tmp/src/gifti_clib
+          name: Build with downloads, and use a prefix
+          command: |
+            export CMAKE_VER=3.11.3
             wget -P /opt/cmake  https://github.com/Kitware/CMake/releases/download/v${CMAKE_VER}/cmake-${CMAKE_VER}-Linux-x86_64.tar.gz
             cd /opt/cmake
-            tar xzvf cmake-${CMAKE_VER}-Linux-x86_64.tar.gz
+            tar xzvf cmake-${CMAKE_VER}-Linux-x86_64.tar.gz 1> /dev/null
             export PATH="/opt/cmake/cmake-${CMAKE_VER}-Linux-x86_64/bin:$PATH"
             cd -
-            d=../build_with_old_cmake;mkdir $d;cd $d
-            cmake ../gifti_clib
+            d=../build_with_cmake_v11;mkdir $d;cd $d
+            cmake ../gifti_clib -DNIFTI_PACKAGE_PREFIX=test_
             make
             ctest --output-on-failure
+
+
+
+
 
   # macos_build:
   #   macos:
