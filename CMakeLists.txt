@@ -324,7 +324,7 @@ cmake_dependent_option(
   TEST_INSTALL
   "Add a test to check that linking to SO libraries occurs correctly during installation."
   ON
-  "${NIFTI_PACKAGE_PREFIX};${GIFTI_BUILD_APPLICATIONS};${BUILD_SHARED_LIBS};${GIFTI_BUILD_TESTING}"
+  "${NIFTI_PACKAGE_PREFIX};${GIFTI_BUILD_APPLICATIONS};${BUILD_SHARED_LIBS};${GIFTI_BUILD_TESTING};NOT USE_SYSTEM_NIFTI"
   OFF
 )
 # Test that installed linking works
