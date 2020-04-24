@@ -25,8 +25,7 @@ jobs:
           name: Install nifti manually for now
           command: |
             cd /tmp
-            git clone --single-branch --branch update_installation https://github.com/leej3/nifti_clib.git
-            # git clone --single-branch --branch master https://github.com/NIFTI-Imaging/nifti_clib.git
+            git clone --single-branch --branch master https://github.com/NIFTI-Imaging/nifti_clib.git
             d=nifti_build;mkdir $d;cd $d
             cmake -DDOWNLOAD_TEST_DATA=OFF -DBUILD_SHARED_LIBS=ON ../nifti_clib
             make install
