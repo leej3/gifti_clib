@@ -13,7 +13,7 @@ include(CMakeDependentOption)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/cmake)
 include(gifti_macros)
 
-set_property(GLOBAL PROPERTY installed_targets)
+set_property(GLOBAL PROPERTY gifti_installed_targets)
 
 # INSTALLATION SETTINGS
 
@@ -166,11 +166,11 @@ if(GIFTI_BUILD_APPLICATIONS)
   target_link_libraries(gifti_test ${GIFTICLIB_NAME})
 endif()
 
-get_property(installed_targets GLOBAL PROPERTY installed_targets)
-message("Installed_targets: ${installed_targets}")
+get_property(gifti_installed_targets GLOBAL PROPERTY gifti_installed_targets)
+message("gifti_installed_targets: ${gifti_installed_targets}")
 if(GIFTI_INSTALL_NO_DEVELOPMENT)
   install(
-    TARGETS ${installed_targets}
+    TARGETS ${gifti_installed_targets}
     EXPORT ${GIFTI_INSTALL_EXPORT_NAME}
     RUNTIME DESTINATION ${GIFTI_INSTALL_BIN_DIR}
             COMPONENT RuntimeBinaries
@@ -181,7 +181,7 @@ if(GIFTI_INSTALL_NO_DEVELOPMENT)
   )
 else()
   install(
-    TARGETS ${installed_targets}
+    TARGETS ${gifti_installed_targets}
     EXPORT ${GIFTI_INSTALL_EXPORT_NAME}
     RUNTIME DESTINATION ${GIFTI_INSTALL_BIN_DIR}
             COMPONENT RuntimeBinaries
